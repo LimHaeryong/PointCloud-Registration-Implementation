@@ -24,7 +24,8 @@ Before running the executable, make sure that the "source.pcd" and "target.pcd" 
 ```
 
 ## Result
-Source cloud : red
-Target cloud : blue
-Aligned cloud : green
+- Source cloud : red
+- Target cloud : blue
+- Aligned cloud : green
+
 ![](./ICP_result.png)
