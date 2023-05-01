@@ -25,20 +25,24 @@ void colorize(const pcl::PointCloud<pcl::PointXYZ>& cloud, pcl::PointCloud<pcl::
     }
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    cout << "icp_test started" << endl;
+    if (argc < 3)
+    {
+        std::cerr << "Usage: " << argv[0] << " [source.pcd] [target.pcd]" << std::endl;
+        return 1;
+    }
 
     // load pcd files
     pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-    if(pcl::io::loadPCDFile<pcl::PointXYZ>("../resources/source.pcd", *source_cloud) == -1)
+    if(pcl::io::loadPCDFile<pcl::PointXYZ>(argv[1], *source_cloud) == -1)
     {
         PCL_ERROR("Couldn't read pcd file \n");
         return -1;
     }
 
-    if(pcl::io::loadPCDFile<pcl::PointXYZ>("../resources/target.pcd", *target_cloud) == -1)
+    if(pcl::io::loadPCDFile<pcl::PointXYZ>(argv[2], *target_cloud) == -1)
     {
         PCL_ERROR("Couldn't read pcd file \n");
         return -1;
