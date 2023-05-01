@@ -1,10 +1,13 @@
 # PointCloud-Registration-Implementation
+This is a C++ implementation of the Iterative Closest Point (ICP) algorithm using PCL and Eigen libraries. 
 
-## dependencies
+I also plan to implement the Normal Distributions Transform (NDT) and Generalized ICP (G-ICP) algorithms in the future.
+
+## Dependencies
 
 - PCL library
 
-## build
+## Build & Compile
 
 ```cpp
 mkdir build && cd build
@@ -12,9 +15,9 @@ cmake ..
 make
 ```
 
-## registration
+## Registration
 
-you need to locate "source.pcd" and "target.pcd" file in the resources directory.
+Before running the executable, make sure that the "source.pcd" and "target.pcd" files are located in the resources directory.
 
 ```cpp
 ./icp_test 
