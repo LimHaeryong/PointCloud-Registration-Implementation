@@ -20,7 +20,7 @@ make
 Before running the executable, make sure that the "source.pcd" and "target.pcd" files are located in the resources directory.
 
 ```cpp
-./icp_test 
+./icp_test [source.pcd] [target.pcd]
 ```
 
 ## Result
