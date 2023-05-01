@@ -6,6 +6,7 @@ I also plan to implement the Normal Distributions Transform (NDT) and Generalize
 ## Dependencies
 
 - PCL library
+- OpenMP
 
 ## Build & Compile
 
