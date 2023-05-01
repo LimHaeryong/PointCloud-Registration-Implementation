@@ -7,6 +7,13 @@ if(${PCL_FOUND})
     message(STATUS "Found PCL - ${PCL_DIR}")
 endif()
 
+find_package(OpenMP REQUIRED)
+if(OpenMP_CXX_FOUND)
+    message(STATUS "OpenMP Found!")
+    set(OpenMP_LIBS OpenMP::OpenMP_CXX)
+endif()
+
+
 set(REGISTRATION_SOURCE_FILES
     src/icp.cpp
     src/gicp.cpp
@@ -22,4 +29,5 @@ target_include_directories(${PACKAGE_NAME} PUBLIC
 )
 target_link_libraries(${PACKAGE_NAME} PRIVATE
     ${PCL_LIBRARIES}
+    ${OpenMP_LIBS}
 )

@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <pcl/filters/voxel_grid.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -48,11 +49,24 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    // voxelization
+    pcl::PointCloud<pcl::PointXYZ>::Ptr source_voxelized (new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr target_voxelized (new pcl::PointCloud<pcl::PointXYZ>);
+
+    pcl::VoxelGrid<pcl::PointXYZ> voxel_filter;
+    voxel_filter.setLeafSize(0.2f, 0.2f, 0.2f);
+    
+    voxel_filter.setInputCloud(source_cloud);
+    voxel_filter.filter(*source_voxelized);
+    voxel_filter.setInputCloud(target_cloud);
+    voxel_filter.filter(*target_voxelized);
+
+
     pcl::PointCloud<pcl::PointXYZ>::Ptr aligned_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
     ICP icp = ICP();
-    icp.setInputSource(source_cloud);
-    icp.setInputTarget(target_cloud);
+    icp.setInputSource(source_voxelized);
+    icp.setInputTarget(target_voxelized);
     icp.align(*aligned_cloud);
 
     if(icp.hasConverged())
@@ -68,9 +82,9 @@ int main(int argc, char **argv)
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr aligned_colored(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr target_colored(new pcl::PointCloud<pcl::PointXYZRGB>);
 
-    colorize(*source_cloud, *source_colored, {255, 0, 0});
+    colorize(*source_voxelized, *source_colored, {255, 0, 0});
     colorize(*aligned_cloud, *aligned_colored, {0, 255, 0});
-    colorize(*target_cloud, *target_colored, {0, 0, 255});
+    colorize(*target_voxelized, *target_colored, {0, 0, 255});
 
 
     pcl::visualization::CloudViewer cloud_viewer("Cloud Viewer");

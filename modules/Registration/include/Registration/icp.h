@@ -2,6 +2,7 @@
 #define ICP_H_
 
 #include <iostream>
+#include <omp.h>
 #include <vector>
 
 #include <Eigen/Core>
@@ -10,6 +11,8 @@
 #include <pcl/registration/icp.h>
 
 #include "Registration/type.h"
+
+#pragma omp declare reduction(matrix_reduction : Eigen::MatrixXd : omp_out += omp_in) initializer(omp_priv = Eigen::MatrixXd::Zero(omp_orig.rows(), omp_orig.cols()))
 
 class ICP
 {
@@ -52,6 +55,7 @@ private:
     double transformation_epsilon_;
     int max_iteration_;
     bool converged_;
+
 };
 
 
