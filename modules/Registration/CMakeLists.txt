@@ -15,6 +15,7 @@ endif()
 
 
 set(REGISTRATION_SOURCE_FILES
+    src/Registration.cpp
     src/icp.cpp
     src/gicp.cpp
     src/ndt.cpp

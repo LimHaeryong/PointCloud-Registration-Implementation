@@ -1,14 +1,11 @@
 #include "Registration/icp.h"
 
 ICP::ICP()
-    : source_cloud_ (new PointCloudT)
-    , target_cloud_ (new PointCloudT)
-    , total_transform_ (Eigen::Matrix4d::Identity())
-    , kdtree_ (new pcl::KdTreeFLANN<PointT>)
+    : kdtree_ (new pcl::KdTreeFLANN<PointT>)
     , max_correspondence_distance_(100.0)
-    , transformation_epsilon_(1e-6)
-    , euclidean_fitness_epsilon_(1e-8)
-    , max_iteration_(200)
+    , transformation_epsilon_(0.01)
+    , euclidean_fitness_epsilon_(0.01)
+    , max_iteration_(50)
 {
 
 }
@@ -37,19 +34,6 @@ void ICP::setMaximumIterations(int max_iteration)
     max_iteration_ = max_iteration;
 }
 
-void ICP::setInputSource(const PointCloudPtr& cloud)
-{
-    source_cloud_ = cloud;
-}
-void ICP::setInputTarget(const PointCloudPtr& cloud)
-{
-    target_cloud_ = cloud;
-}
-
-Eigen::Matrix4d ICP::getFinalTransformation()
-{
-    return total_transform_;
-}
 
 void ICP::align(PointCloudT& output)
 {
@@ -81,11 +65,6 @@ void ICP::align(PointCloudT& output)
 
     }
 
-}
-
-bool ICP::hasConverged()
-{
-    return converged_;
 }
 
 void ICP::associate(const PointCloudT& output, std::vector<int>& associations)
