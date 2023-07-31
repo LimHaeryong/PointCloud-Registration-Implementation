@@ -1,17 +1,17 @@
 #include "Registration/icp.h"
 
+#include <chrono>
+
 ICP::ICP()
-    : source_cloud_ (new PointCloudT)
-    , target_cloud_ (new PointCloudT)
-    , total_transform_ (Eigen::Matrix4d::Identity())
-    , kdtree_ (new pcl::KdTreeFLANN<PointT>)
+    : source_cloud_(new PointCloudT)
+    , target_cloud_(new PointCloudT)
+    , total_transform_(Eigen::Matrix4d::Identity())
+    , kdtree_(new pcl::KdTreeFLANN<PointT>)
     , max_correspondence_distance_(100.0)
     , transformation_epsilon_(1e-6)
     , euclidean_fitness_epsilon_(1e-8)
     , max_iteration_(200)
-{
-
-}
+{}
 
 ICP::~ICP()
 {
@@ -37,11 +37,11 @@ void ICP::setMaximumIterations(int max_iteration)
     max_iteration_ = max_iteration;
 }
 
-void ICP::setInputSource(const PointCloudPtr& cloud)
+void ICP::setInputSource(const PointCloudPtr &cloud)
 {
     source_cloud_ = cloud;
 }
-void ICP::setInputTarget(const PointCloudPtr& cloud)
+void ICP::setInputTarget(const PointCloudPtr &cloud)
 {
     target_cloud_ = cloud;
 }
@@ -51,7 +51,7 @@ Eigen::Matrix4d ICP::getFinalTransformation()
     return total_transform_;
 }
 
-void ICP::align(PointCloudT& output)
+void ICP::align(PointCloudT &output)
 {
     total_transform_ = Eigen::Matrix4d::Identity();
     converged_ = false;
@@ -60,27 +60,26 @@ void ICP::align(PointCloudT& output)
     kdtree_->setInputCloud(target_cloud_);
 
     std::vector<int> associations;
-    std::vector<PointPair> point_pairs; 
+    std::vector<PointPair> point_pairs;
 
     int iteration(0);
-    while(!converged_ && iteration++ < max_iteration_)
+
+    while (!converged_ && iteration++ < max_iteration_)
     {
         associate(output, associations);
         getPairPoints(output, associations, point_pairs);
         Eigen::Matrix4d transform = computeTransform(point_pairs);
         total_transform_ *= transform;
         pcl::transformPointCloud(*source_cloud_, output, total_transform_);
-        if(transform.isApprox(Eigen::Matrix4d::Identity(), transformation_epsilon_))
+        if (transform.isApprox(Eigen::Matrix4d::Identity(), transformation_epsilon_))
         {
             converged_ = true;
         }
-        if(computeEuclideanError(point_pairs, transform) < euclidean_fitness_epsilon_)
+        if (computeEuclideanError(point_pairs, transform) < euclidean_fitness_epsilon_)
         {
             converged_ = true;
         }
-
     }
-
 }
 
 bool ICP::hasConverged()
@@ -88,38 +87,34 @@ bool ICP::hasConverged()
     return converged_;
 }
 
-void ICP::associate(const PointCloudT& output, std::vector<int>& associations)
+void ICP::associate(const PointCloudT &output, std::vector<int> &associations)
 {
+    size_t output_size = output.size();
     associations.clear();
-    associations.resize(output.points.size());
+    associations.resize(output_size, -1);
 
-    for(int i = 0; i < output.points.size(); ++i)
+#pragma omp parallel for
+    for (int i = 0; i < output_size; ++i)
     {
-        PointT point = output.points[i];
-        std::vector<int> k_indices;
-        std::vector<float> k_sqr_distances;
-        if(kdtree_->radiusSearch(point, max_correspondence_distance_, k_indices, k_sqr_distances) > 0)
+        std::vector<int> k_indices(1);
+        std::vector<float> k_distances(1);
+        if (kdtree_->nearestKSearch(output, i, 1, k_indices, k_distances) > 0 && k_distances[0] < max_correspondence_distance_)
         {
             associations[i] = k_indices[0];
         }
-        else
-        {
-            associations[i] = -1;
-        }
     }
-
 }
 
-void ICP::getPairPoints(const PointCloudT& output, const std::vector<int>& associations, std::vector<PointPair>& point_pairs)
+void ICP::getPairPoints(const PointCloudT &output, const std::vector<int> &associations, std::vector<PointPair> &point_pairs)
 {
     point_pairs.clear();
     point_pairs.reserve(associations.size());
 
     int i = 0;
-    for(PointT point : output.points)
+    for (PointT point : output.points)
     {
         int j = associations[i];
-        if(j >= 0)
+        if (j >= 0)
         {
             PointT target_point = target_cloud_->points[j];
             point_pairs.emplace_back(point, target_point);
@@ -128,7 +123,7 @@ void ICP::getPairPoints(const PointCloudT& output, const std::vector<int>& assoc
     }
 }
 
-Eigen::Matrix4d ICP::computeTransform(const std::vector<PointPair>& point_pairs)
+Eigen::Matrix4d ICP::computeTransform(const std::vector<PointPair> &point_pairs)
 {
     std::size_t pair_size = point_pairs.size();
 
@@ -137,8 +132,8 @@ Eigen::Matrix4d ICP::computeTransform(const std::vector<PointPair>& point_pairs)
     Eigen::MatrixXd P = Eigen::MatrixXd::Zero(3, 1);
     Eigen::MatrixXd Q = Eigen::MatrixXd::Zero(3, 1);
 
-    #pragma omp parallel for reduction(matrix_reduction : P,Q)
-    for(int i = 0; i < pair_size; ++i)
+#pragma omp parallel for reduction(matrix_reduction : P, Q)
+    for (int i = 0; i < pair_size; ++i)
     {
         P(0, 0) += point_pairs[i].p1.x;
         P(1, 0) += point_pairs[i].p1.y;
@@ -152,8 +147,8 @@ Eigen::Matrix4d ICP::computeTransform(const std::vector<PointPair>& point_pairs)
     P.block<3, 1>(0, 0) /= static_cast<double>(pair_size);
     Q.block<3, 1>(0, 0) /= static_cast<double>(pair_size);
 
-    #pragma omp parallel for
-    for(std::size_t i = 0; i < pair_size; ++i)
+#pragma omp parallel for
+    for (std::size_t i = 0; i < pair_size; ++i)
     {
         X(0, i) = point_pairs[i].p1.x - P(0, 0);
         X(1, i) = point_pairs[i].p1.y - P(1, 0);
@@ -181,15 +176,15 @@ Eigen::Matrix4d ICP::computeTransform(const std::vector<PointPair>& point_pairs)
     return transform;
 }
 
-double ICP::computeEuclideanError(const std::vector<PointPair>& point_pairs, const Eigen::Matrix4d& transform)
+double ICP::computeEuclideanError(const std::vector<PointPair> &point_pairs, const Eigen::Matrix4d &transform)
 {
     double error = 0.0;
 
-    #pragma omp parallel for reduction(+:error) 
-    for(int i = 0; i < point_pairs.size(); ++i)
+#pragma omp parallel for reduction(+ : error)
+    for (int i = 0; i < point_pairs.size(); ++i)
     {
-        Eigen::Vector4d P = Eigen::Vector4d::Ones(); 
-        Eigen::Vector4d Q = Eigen::Vector4d::Ones(); 
+        Eigen::Vector4d P = Eigen::Vector4d::Ones();
+        Eigen::Vector4d Q = Eigen::Vector4d::Ones();
 
         PointPair point_pair = point_pairs[i];
 
@@ -202,10 +197,9 @@ double ICP::computeEuclideanError(const std::vector<PointPair>& point_pairs, con
         Q(2, 0) = point_pair.p2.z;
 
         P = transform * P;
-        error += (P-Q).norm();
-
+        error += (P - Q).norm();
     }
-    
+
     error /= static_cast<double>(point_pairs.size());
 
     return error;

@@ -1,3 +1,5 @@
+#include <chrono>
+#include <thread>
 #include <iostream>
 
 #include <pcl/filters/voxel_grid.h>
@@ -8,6 +10,7 @@
 #include "Registration/icp.h"
 
 using namespace std;
+using namespace std::chrono_literals;
 
 void colorize(const pcl::PointCloud<pcl::PointXYZ>& cloud, pcl::PointCloud<pcl::PointXYZRGB> & cloud_colored, const std::vector<int> &color)
 {
@@ -67,7 +70,10 @@ int main(int argc, char **argv)
     ICP icp = ICP();
     icp.setInputSource(source_voxelized);
     icp.setInputTarget(target_voxelized);
+
+    auto t0 = std::chrono::system_clock::now();
     icp.align(*aligned_cloud);
+    std::cout << "ICP elapsed time : " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - t0).count() << " ms\n";
 
     if(icp.hasConverged())
     {
@@ -93,7 +99,7 @@ int main(int argc, char **argv)
     cloud_viewer.showCloud(target_colored, "target");
     while(!cloud_viewer.wasStopped())
     {
-        continue;
+        std::this_thread::sleep_for(30ms);
     }
 
     return 0;
