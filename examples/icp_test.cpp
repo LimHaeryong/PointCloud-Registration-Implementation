@@ -9,9 +9,6 @@
 
 #include "Registration/icp.h"
 
-using namespace std;
-using namespace std::chrono_literals;
-
 void colorize(const pcl::PointCloud<pcl::PointXYZ>& cloud, pcl::PointCloud<pcl::PointXYZRGB> & cloud_colored, const std::vector<int> &color)
 {
     cloud_colored.clear();
@@ -31,32 +28,51 @@ void colorize(const pcl::PointCloud<pcl::PointXYZ>& cloud, pcl::PointCloud<pcl::
 
 int main(int argc, char **argv)
 {
-    if (argc < 3)
+    using namespace std;
+    using namespace std::chrono_literals;
+
+    using PointT = pcl::PointXYZ;
+    using PointCloudT = pcl::PointCloud<PointT>;
+    using PointCloudPtr = pcl::PointCloud<PointT>::Ptr;
+
+    std::string source_path, target_path;
+
+    if (argc == 1)
+    {
+        source_path = SOURCE_CLOUD_PATH;
+        target_path = TARGET_CLOUD_PATH;
+    }
+    else if(argc == 3)
+    {
+        source_path = argv[1];
+        target_path = argv[2];
+    }
+    else
     {
         std::cerr << "Usage: " << argv[0] << " [source.pcd] [target.pcd]" << std::endl;
         return 1;
     }
 
     // load pcd files
-    pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-    if(pcl::io::loadPCDFile<pcl::PointXYZ>(argv[1], *source_cloud) == -1)
+    auto source_cloud = pcl::make_shared<PointCloudT>();
+    auto target_cloud = pcl::make_shared<PointCloudT>();
+    if(pcl::io::loadPCDFile<pcl::PointXYZ>(source_path, *source_cloud) == -1)
     {
         PCL_ERROR("Couldn't read pcd file \n");
         return -1;
     }
 
-    if(pcl::io::loadPCDFile<pcl::PointXYZ>(argv[2], *target_cloud) == -1)
+    if(pcl::io::loadPCDFile<pcl::PointXYZ>(target_path, *target_cloud) == -1)
     {
         PCL_ERROR("Couldn't read pcd file \n");
         return -1;
     }
 
     // voxelization
-    pcl::PointCloud<pcl::PointXYZ>::Ptr source_voxelized (new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr target_voxelized (new pcl::PointCloud<pcl::PointXYZ>);
+    auto source_voxelized = pcl::make_shared<PointCloudT>();
+    auto target_voxelized = pcl::make_shared<PointCloudT>();
 
-    pcl::VoxelGrid<pcl::PointXYZ> voxel_filter;
+    pcl::VoxelGrid<PointT> voxel_filter;
     voxel_filter.setLeafSize(0.2f, 0.2f, 0.2f);
     
     voxel_filter.setInputCloud(source_cloud);
@@ -65,9 +81,9 @@ int main(int argc, char **argv)
     voxel_filter.filter(*target_voxelized);
 
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr aligned_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    auto aligned_cloud = pcl::make_shared<PointCloudT>();
 
-    ICP icp = ICP();
+    ICP<PointT> icp;
     icp.setInputSource(source_voxelized);
     icp.setInputTarget(target_voxelized);
 

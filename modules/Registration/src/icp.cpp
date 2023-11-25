@@ -2,92 +2,43 @@
 
 #include <chrono>
 
-ICP::ICP()
-    : source_cloud_(new PointCloudT)
-    , target_cloud_(new PointCloudT)
-    , total_transform_(Eigen::Matrix4d::Identity())
-    , kdtree_(new pcl::KdTreeFLANN<PointT>)
-    , max_correspondence_distance_(100.0)
-    , transformation_epsilon_(1e-6)
-    , euclidean_fitness_epsilon_(1e-8)
-    , max_iteration_(200)
-{}
+template class ICP<pcl::PointXYZ>;
+template class ICP<pcl::PointXYZINormal>;
 
-ICP::~ICP()
+template <typename PointT>
+void ICP<PointT>::align(PointCloudT &output)
 {
-}
-
-void ICP::setMaxCorrespondenceDistance(double max_correspondence_distance)
-{
-    max_correspondence_distance_ = max_correspondence_distance;
-}
-
-void ICP::setTransformationEpsilon(double transformation_epsilon)
-{
-    transformation_epsilon_ = transformation_epsilon;
-}
-
-void ICP::setEuclideanFitnessEpsilon(double euclidean_fitness_epsilon)
-{
-    euclidean_fitness_epsilon_ = euclidean_fitness_epsilon;
-}
-
-void ICP::setMaximumIterations(int max_iteration)
-{
-    max_iteration_ = max_iteration;
-}
-
-void ICP::setInputSource(const PointCloudPtr &cloud)
-{
-    source_cloud_ = cloud;
-}
-void ICP::setInputTarget(const PointCloudPtr &cloud)
-{
-    target_cloud_ = cloud;
-}
-
-Eigen::Matrix4d ICP::getFinalTransformation()
-{
-    return total_transform_;
-}
-
-void ICP::align(PointCloudT &output)
-{
-    total_transform_ = Eigen::Matrix4d::Identity();
-    converged_ = false;
-    std::size_t cloud_size = source_cloud_->size();
-    pcl::transformPointCloud(*source_cloud_, output, total_transform_);
-    kdtree_->setInputCloud(target_cloud_);
+    this->total_transform_ = Eigen::Matrix4d::Identity();
+    this->converged_ = false;
+    std::size_t cloud_size = this->source_cloud_->size();
+    pcl::transformPointCloud(*this->source_cloud_, output, this->total_transform_);
+    this->kdtree_->setInputCloud(this->target_cloud_);
 
     std::vector<int> associations;
     std::vector<PointPair> point_pairs;
 
     int iteration(0);
 
-    while (!converged_ && iteration++ < max_iteration_)
+    while (!this->converged_ && iteration++ < this->max_iteration_)
     {
         associate(output, associations);
         getPairPoints(output, associations, point_pairs);
         Eigen::Matrix4d transform = computeTransform(point_pairs);
-        total_transform_ *= transform;
-        pcl::transformPointCloud(*source_cloud_, output, total_transform_);
+        this->total_transform_ *= transform;
+        pcl::transformPointCloud(*this->source_cloud_, output, this->total_transform_);
         if (transform.isApprox(Eigen::Matrix4d::Identity(), transformation_epsilon_))
         {
-            converged_ = true;
+            this->converged_ = true;
         }
         if (computeEuclideanError(point_pairs, transform) < euclidean_fitness_epsilon_)
         {
-            converged_ = true;
+            this->converged_ = true;
         }
     }
 }
 
-bool ICP::hasConverged()
-{
-    return converged_;
-}
-
-void ICP::associate(const PointCloudT &output, std::vector<int> &associations)
+template <typename PointT>
+void ICP<PointT>::associate(const PointCloudT &output, std::vector<int> &associations)
 {
     size_t output_size = output.size();
     associations.clear();
@@ -98,14 +49,15 @@ void ICP::associate(const PointCloudT &output, std::vector<int> &associations)
     {
         std::vector<int> k_indices(1);
         std::vector<float> k_distances(1);
-        if (kdtree_->nearestKSearch(output, i, 1, k_indices, k_distances) > 0 && k_distances[0] < max_correspondence_distance_)
+        if (this->kdtree_->nearestKSearch(output, i, 1, k_indices, k_distances) > 0 && k_distances[0] < max_correspondence_distance_)
         {
             associations[i] = k_indices[0];
         }
     }
 }
 
-void ICP::getPairPoints(const PointCloudT &output, const std::vector<int> &associations, std::vector<PointPair> &point_pairs)
+template <typename PointT>
+void ICP<PointT>::getPairPoints(const PointCloudT &output, const std::vector<int> &associations, std::vector<PointPair> &point_pairs)
 {
     point_pairs.clear();
     point_pairs.reserve(associations.size());
@@ -116,14 +68,15 @@ void ICP::getPairPoints(const PointCloudT &output, const std::vector<int> &assoc
         int j = associations[i];
         if (j >= 0)
         {
-            PointT target_point = target_cloud_->points[j];
+            PointT target_point = this->target_cloud_->points[j];
             point_pairs.emplace_back(point, target_point);
         }
         ++i;
     }
 }
 
-Eigen::Matrix4d ICP::computeTransform(const std::vector<PointPair> &point_pairs)
+template <typename PointT>
+Eigen::Matrix4d ICP<PointT>::computeTransform(const std::vector<PointPair> &point_pairs)
 {
     std::size_t pair_size = point_pairs.size();
 
@@ -176,7 +129,8 @@ Eigen::Matrix4d ICP::computeTransform(const std::vector<PointPair> &point_pairs)
     return transform;
 }
 
-double ICP::computeEuclideanError(const std::vector<PointPair> &point_pairs, const Eigen::Matrix4d &transform)
+template <typename PointT>
+double ICP<PointT>::computeEuclideanError(const std::vector<PointPair> &point_pairs, const Eigen::Matrix4d &transform)
 {
     double error = 0.0;
 
@@ -204,3 +158,4 @@ double ICP::computeEuclideanError(const std::vector<PointPair> &point_pairs, con
 
     return error;
 }
+
