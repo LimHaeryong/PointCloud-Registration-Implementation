@@ -62,16 +62,15 @@ void ICP<PointT>::getPairPoints(const PointCloudT &output, const std::vector<int
     point_pairs.clear();
     point_pairs.reserve(associations.size());
 
-    int i = 0;
-    for (PointT point : output.points)
+    for(int i = 0; i < output.size(); ++i)
     {
         int j = associations[i];
-        if (j >= 0)
+        if(j >= 0)
         {
-            PointT target_point = this->target_cloud_->points[j];
-            point_pairs.emplace_back(point, target_point);
+            const PointT& p = output.points[i];
+            const PointT& q = this->target_cloud_->points[j];
+            point_pairs.emplace_back(p, q);
         }
-        ++i;
     }
 }
 

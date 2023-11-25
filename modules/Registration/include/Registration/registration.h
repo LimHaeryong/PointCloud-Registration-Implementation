@@ -18,10 +18,8 @@ public:
     using PointCloudPtr = typename pcl::PointCloud<PointT>::Ptr;
 
     Registration()
-        : source_cloud_(new PointCloudT)
-        , target_cloud_(new PointCloudT)
-        , total_transform_(Eigen::Matrix4d::Identity())
-        , kdtree_(new pcl::KdTreeFLANN<PointT>)
+        : total_transform_(Eigen::Matrix4d::Identity())
+        , kdtree_(pcl::make_shared<pcl::KdTreeFLANN<PointT>>())
         , max_iteration_(200)
     {}
 
@@ -50,14 +48,14 @@ public:
     virtual void align(PointCloudT& output) = 0;
 
 protected:
-    PointCloudPtr source_cloud_;
-    PointCloudPtr target_cloud_;
+    PointCloudPtr source_cloud_ = nullptr;
+    PointCloudPtr target_cloud_ = nullptr;
 
     Eigen::Matrix4d total_transform_;
-    typename pcl::KdTreeFLANN<PointT>::Ptr kdtree_;
+    typename pcl::KdTreeFLANN<PointT>::Ptr kdtree_ = nullptr;
     
     int max_iteration_;
-    bool converged_;
+    bool converged_ = false;
 
 };
 

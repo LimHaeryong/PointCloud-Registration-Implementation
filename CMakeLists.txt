@@ -2,8 +2,7 @@ cmake_minimum_required (VERSION 3.10)
 set(PACKAGE_NAME PointCloud-Registration-Implementation)
 project(${PACKAGE_NAME} LANGUAGES CXX)
 
-add_compile_options(-std=c++14)
-set(CMAKE_CXX_FLAGS "-std=c++14 -pthread -O3") 
+set(CMAKE_CXX_FLAGS "-std=c++17 -pthread -O3") 
 
 add_subdirectory(modules)
 
@@ -15,6 +14,15 @@ target_link_libraries(icp_test PRIVATE
     REGISTRATION
 )
 target_compile_definitions(icp_test PUBLIC
+    SOURCE_CLOUD_PATH="${SOURCE_CLOUD_PATH}"
+    TARGET_CLOUD_PATH="${TARGET_CLOUD_PATH}"
+)
+
+add_executable(kdtree_test examples/kdtree_test.cpp)
+target_link_libraries(kdtree_test PRIVATE
+    REGISTRATION
+)
+target_compile_definitions(kdtree_test PUBLIC
     SOURCE_CLOUD_PATH="${SOURCE_CLOUD_PATH}"
     TARGET_CLOUD_PATH="${TARGET_CLOUD_PATH}"
 )
