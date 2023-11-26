@@ -31,12 +31,12 @@ public:
 
     struct Bound
     {
-        float x_min = std::numeric_limits<float>::min();
-        float x_max = std::numeric_limits<float>::max();
-        float y_min = std::numeric_limits<float>::min();
-        float y_max = std::numeric_limits<float>::max();
-        float z_min = std::numeric_limits<float>::min();
-        float z_max = std::numeric_limits<float>::max();
+        float x_min = -std::numeric_limits<float>::infinity();
+        float x_max = std::numeric_limits<float>::infinity();
+        float y_min = -std::numeric_limits<float>::infinity();
+        float y_max = std::numeric_limits<float>::infinity();
+        float z_min = -std::numeric_limits<float>::infinity();
+        float z_max = std::numeric_limits<float>::infinity();
 
         void setMin(Dim dim, float val)
         {
@@ -106,6 +106,10 @@ public:
             return val;
         }
 
+        void printBound() const
+        {
+            std::cout << "Bound : " << x_min << " " << x_max << ", " << y_min << " " << y_max << ", " << z_min << " " << z_max << '\n';
+        }
     };
 
     struct Node
@@ -164,7 +168,7 @@ public:
     void nearestSearch(const PointT& target, float& dist_sq, int& idx)
     {
         idx = -1;
-        dist_sq = std::numeric_limits<float>::max();
+        dist_sq = std::numeric_limits<float>::infinity();
         nearestSearch(root_, target, Dim::x, Bound{}, dist_sq, idx);
     }
 
@@ -215,9 +219,7 @@ private:
     void nearestSearch(NodePtr node, const PointT& p, Dim dim, Bound bound, float& best_dist, int& best_idx)
     {
         if(node == nullptr || distance(p, bound) > best_dist)
-        {
             return;
-        }    
 
         const PointT& p_node = cloud_->points[node->index];
         float dist = distance(p, p_node);
@@ -269,6 +271,7 @@ private:
             nearestSearch(node->left, p, next_dim, bound, best_dist, best_idx);
             bound.setMax(dim, tmp);
         }
+
     }
 
     float distance(const PointT& a, const PointT& b)
@@ -278,20 +281,16 @@ private:
 
     float distance(const PointT& p, const Bound& bound)
     {
-        float distance = std::numeric_limits<float>::max();
+        float distance = 0.0f;
 
-        if(bound.x_min != std::numeric_limits<float>::min())
-            distance = std::min(distance, std::pow(bound.x_min - p.x, 2.0f));
-        if(bound.x_max != std::numeric_limits<float>::max())
-            distance = std::min(distance, std::pow(bound.x_max - p.x, 2.0f));
-        if(bound.y_min != std::numeric_limits<float>::min())
-            distance = std::min(distance, std::pow(bound.y_min - p.y, 2.0f));
-        if(bound.y_max != std::numeric_limits<float>::max())
-            distance = std::min(distance, std::pow(bound.y_max - p.y, 2.0f));
-        if(bound.z_min != std::numeric_limits<float>::min())
-            distance = std::min(distance, std::pow(bound.z_min - p.z, 2.0f));
-        if(bound.z_max != std::numeric_limits<float>::max())
-            distance = std::min(distance, std::pow(bound.z_max - p.z, 2.0f));
+        if(p.x < bound.x_min) distance += std::pow(p.x - bound.x_min, 2.0f);
+        else if(p.x > bound.x_max) distance += std::pow(p.x - bound.x_max, 2.0f);
+        
+        if(p.y < bound.y_min) distance += std::pow(p.y - bound.y_min, 2.0f);
+        else if(p.y > bound.y_max) distance += std::pow(p.x - bound.y_max, 2.0f);
+        
+        if(p.z < bound.z_min) distance += std::pow(p.z - bound.z_min, 2.0f);
+        else if(p.z > bound.x_max) distance += std::pow(p.z - bound.z_max, 2.0f);
 
         return distance;
     }

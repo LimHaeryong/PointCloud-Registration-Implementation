@@ -9,6 +9,7 @@
 
 #include <pcl/registration/icp.h>
 #include "Registration/kdtree.h"
+#include "Registration/timer.h"
 
 void colorize(const pcl::PointCloud<pcl::PointXYZ>& cloud, pcl::PointCloud<pcl::PointXYZRGB> & cloud_colored, const std::vector<int> &color)
 {
@@ -87,7 +88,19 @@ int main(int argc, char **argv)
     KDTree tree;
     tree.setInputCloud(source_voxelized);
 
-    
+    float dist_tree;
+    int idx_tree;
+    std::vector<int> idx_pcl_tree(1);
+    std::vector<float> dist_pcl_tree(1);
+
+    for(int i = 0; i < 10; ++i)
+    {
+        tree.nearestSearch(target_voxelized->points[i], dist_tree, idx_tree);
+        pcl_tree.nearestKSearch(target_voxelized->points[i], 1, idx_pcl_tree, dist_pcl_tree);
+
+        std::cout << "tree idx, dist = " << idx_tree << ", " << dist_tree << "\n";
+        std::cout << "pcl  idx, dist = " << idx_pcl_tree[0] << ", " << dist_pcl_tree[0] << "\n";
+    }
 
     return 0;
 }
